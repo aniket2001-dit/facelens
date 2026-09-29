@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FaceLens — AI Face Analysis</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+<div class="bg-glow bg-glow-3"></div>
+
+<!-- LOADER -->
+<div id="loader" class="loader-screen">
+  <div class="loader-content">
+    <div class="loader-ring"></div>
+    <div class="loader-logo">FaceLens</div>
+    <div class="loader-status" id="loaderStatus">Initializing neural networks…</div>
+    <div class="loader-bar"><div class="loader-bar-fill" id="loaderBarFill"></div></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="app hidden">
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-mark">
+        <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
+          <circle cx="14" cy="14" r="13" stroke="url(#lg)" stroke-width="2"/>
+          <circle cx="10" cy="11" r="2" fill="url(#lg)"/>
+          <circle cx="18" cy="11" r="2" fill="url(#lg)"/>
+          <path d="M9 18c1.5 2 3.5 3 5 3s3.5-1 5-3" stroke="url(#lg)" stroke-width="2" stroke-linecap="round"/>
+          <defs><linearGradient id="lg" x1="0" y1="0" x2="28" y2="28">
+            <stop offset="0%" stop-color="#6C5CE7"/><stop offset="100%" stop-color="#00D2FF"/>
+          </linearGradient></defs>
+        </svg>
+      </div>
+      <div>
+        <h1 class="logo-text">Face<span>Lens</span></h1>
+        <p class="logo-sub">Neural Face Analysis</p>
+      </div>
+    </div>
+    <div class="status-pill"><span class="status-dot"></span><span id="statusText">Ready</span></div>
+  </header>
+
+  <main class="main">
+    <!-- LEFT -->
+    <aside class="panel">
+      <div class="panel-section">
+        <h2 class="panel-title">Analysis Mode</h2>
+        <div class="mode-switcher">
+          <button class="mode-btn active" id="btnWebcam" data-mode="webcam">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            Webcam
+          </button>
+          <button class="mode-btn" id="btnUpload" data-mode="upload">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload
+          </button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2 class="panel-title">Detection Models</h2>
+        <div class="toggle-group">
+          <label class="toggle"><input type="checkbox" id="tDetection" checked><span class="toggle-track"><span class="toggle-thumb"></span></span><span class="toggle-label">Face Detection</span></label>
+          <label class="toggle"><input type="checkbox" id="tLandmarks" checked><span class="toggle-track"><span class="toggle-thumb"></span></span><span class="toggle-label">68 Landmarks</span></label>
+          <label class="toggle"><input type="checkbox" id="tExpressions" checked><span class="toggle-track"><span class="toggle-thumb"></span></span><span class="toggle-label">Expressions</span></label>
+          <label class="toggle"><input type="checkbox" id="tAgeGender" checked><span class="toggle-track"><span class="toggle-thumb"></span></span><span class="toggle-label">Age &amp; Gender</span></label>
+          <label class="toggle"><input type="checkbox" id="tRecognition"><span class="toggle-track"><span class="toggle-thumb"></span></span><span class="toggle-label">Face Recognition</span></label>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2 class="panel-title">Detector Engine</h2>
+        <select id="detectorSelect" class="select-input">
+          <option value="tiny">Tiny Face Detector — Fast</option>
+          <option value="ssd">SSD Mobilenet V1 — Accurate</option>
+        </select>
+      </div>
+
+      <div class="panel-section" id="recognitionSection" style="display:none;">
+        <h2 class="panel-title">Known Faces</h2>
+        <p class="panel-desc">Register a face — it will be recognized later.</p>
+        <input type="text" id="personName" class="text-input" placeholder="Enter a name…" style="margin-bottom:10px;">
+        <button class="btn btn-primary btn-full" id="btnAddPerson">＋ Capture &amp; Register Face</button>
+        <div class="known-list" id="knownList"></div>
+      </div>
+
+      <div class="panel-section">
+        <button class="btn btn-ghost btn-full" id="btnCapture">◉ Capture Snapshot</button>
+      </div>
+    </aside>
+
+    <!-- CENTER -->
+    <section class="stage">
+      <div class="stage-container">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="overlay"></canvas>
+        <div class="scan-line" id="scanLine"></div>
+        <div class="stage-placeholder" id="stagePlaceholder">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          <p>Camera feed appears here</p>
+          <p class="placeholder-sub">Tap “Start Camera” to begin</p>
+        </div>
+        <div class="fps-counter" id="fpsCounter">0 FPS</div>
+      </div>
+      <div class="stage-controls">
+        <button class="btn btn-primary btn-lg" id="btnStartCamera">▶ Start Camera</button>
+        <button class="btn btn-danger btn-lg hidden" id="btnStopCamera">■ Stop Camera</button>
+        <input type="file" id="fileInput" accept="image/*" class="hidden">
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <aside class="panel">
+      <div class="panel-section">
+        <h2 class="panel-title">Analysis Results</h2>
+        <div class="result-empty" id="resultEmpty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg>
+          <p>No faces detected</p>
+          <p class="result-empty-sub">Start the camera or upload an image</p>
+        </div>
+        <div class="result-list" id="resultList"></div>
+      </div>
+
+      <div class="panel-section">
+        <h2 class="panel-title">Session Stats</h2>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-value" id="statFaces">0</div><div class="stat-label">Faces</div></div>
+          <div class="stat-card"><div class="stat-value" id="statFrames">0</div><div class="stat-label">Frames</div></div>
+          <div class="stat-card"><div class="stat-value" id="statKnown">0</div><div class="stat-label">Known</div></div>
+          <div class="stat-card"><div class="stat-value" id="statTime">0s</div><div class="stat-label">Elapsed</div></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast"><span class="toast-icon">✓</span><span id="toastMsg">Done</span></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
